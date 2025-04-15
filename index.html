@@ -1,0 +1,2001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Quantum Day - Interactive Quantum Computing Simulation</title>
+    <!-- Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <!-- Fonts -->
+    <link href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@4.5.8/index.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fontsource/roboto@4.5.8/index.min.css" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.1.1/css/all.min.css">
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqubits@1.1.1/lib/jsqubits.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.10.4/dist/gsap.min.js"></script>
+    <style>
+        :root {
+            --primary: #6d28d9;
+            --primary-light: #8b5cf6;
+            --secondary: #06b6d4;
+            --tertiary: #ec4899;
+            --dark: #1e1b4b;
+            --light: #f1f5f9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', 'Roboto', sans-serif;
+            background-color: var(--dark);
+            color: var(--light);
+            overflow-x: hidden;
+        }
+        
+        .quantum-btn {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .quantum-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .quantum-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .quantum-btn::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+        
+        .quantum-btn:hover::after {
+            transform: translateX(100%);
+        }
+        
+        .glow {
+            box-shadow: 0 0 10px var(--primary-light), 0 0 20px var(--secondary);
+        }
+        
+        .gate {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: grab;
+            margin: 8px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        
+        .gate:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(107, 33, 168, 0.5);
+        }
+        
+        .gate-h {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+        }
+        
+        .gate-x {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+        }
+        
+        .gate-z {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+        }
+        
+        .gate-y {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .gate-cnot {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+        
+        .dropzone {
+            min-height: 60px;
+            border: 2px dashed rgba(255,255,255,0.3);
+            border-radius: 8px;
+            margin: 5px 0;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .dropzone:hover {
+            border-color: var(--primary-light);
+            background-color: rgba(139, 92, 246, 0.1);
+        }
+        
+        .dropzone.active {
+            border-color: var(--success);
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+        
+        .qubit-wire {
+            position: relative;
+            height: 60px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .qubit-wire::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: rgba(255,255,255,0.7);
+            z-index: -1;
+        }
+        
+        #quantum-spheres-container canvas,
+        #particle-system canvas {
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 10px;
+        }
+        
+        .tab-btn {
+            background-color: rgba(0,0,0,0.3);
+            border: none;
+            padding: 0.5rem 1rem;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 1rem;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 0 10px 10px 10px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .glowing-text {
+            text-shadow: 0 0 5px var(--primary-light), 0 0 10px var(--secondary);
+        }
+        
+        .circuit-result {
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 10px;
+            margin-top: 10px;
+            min-height: 100px;
+            transition: all 0.3s ease;
+        }
+        
+        .experiment-card {
+            background: linear-gradient(135deg, rgba(109, 40, 217, 0.2), rgba(6, 182, 212, 0.2));
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .experiment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            border-color: var(--primary-light);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: var(--dark);
+            padding: 20px;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            border: 1px solid var(--primary-light);
+            box-shadow: 0 0 20px var(--primary);
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .concept-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .concept-card:hover {
+            border-color: var(--secondary);
+            transform: scale(1.02);
+        }
+        
+        .tutorial-step {
+            position: absolute;
+            background-color: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 15px var(--primary-light);
+            z-index: 1000;
+            max-width: 300px;
+            display: none;
+        }
+        
+        .progress-bar {
+            height: 5px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            width: 0%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+        
+        @keyframes quantum-pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(139, 92, 246, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+            }
+        }
+        
+        .pulse {
+            animation: quantum-pulse 2s infinite;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-light);
+        }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .modal-content {
+                width: 95%;
+            }
+            
+            .grid-cols-2 {
+                grid-template-columns: 1fr;
+            }
+            
+            .md\:grid-cols-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Header Section -->
+    <header class="py-4 px-6 bg-gradient-to-r from-purple-900 to-blue-900">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center">
+            <div class="flex items-center mb-4 md:mb-0">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-cyan-400 rounded-full flex items-center justify-center mr-3 pulse">
+                    <i class="fas fa-atom text-white"></i>
+                </div>
+                <h1 class="text-2xl md:text-3xl font-bold glowing-text">World Quantum Day</h1>
+            </div>
+            <div>
+                <button id="startTutorial" class="quantum-btn mr-2">
+                    <i class="fas fa-play-circle mr-1"></i> Start Tutorial
+                </button>
+                <button id="aboutBtn" class="quantum-btn">
+                    <i class="fas fa-info-circle mr-1"></i> About
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="container mx-auto p-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Left Column: 3D Quantum Visualization -->
+            <div class="md:col-span-2 rounded-xl bg-gradient-to-br from-gray-900 to-indigo-900 p-4 shadow-lg">
+                <h2 class="text-xl font-bold mb-3 flex items-center">
+                    <i class="fas fa-cube mr-2 text-cyan-400"></i>
+                    Quantum Visualization
+                </h2>
+                
+                <!-- Tabs for different visualizations -->
+                <div class="mb-4">
+                    <button id="spheresTab" class="tab-btn active">Qubit Spheres</button>
+                    <button id="particlesTab" class="tab-btn">Quantum Field</button>
+                    <button id="entanglementTab" class="tab-btn">Entanglement</button>
+                </div>
+                
+                <!-- Tab content containers -->
+                <div id="spheresContent" class="tab-content active">
+                    <div id="quantum-spheres-container" class="h-96 w-full rounded-lg bg-black/30 relative">
+                        <!-- Three.js will render here -->
+                        <div class="absolute bottom-4 right-4 bg-black/50 p-2 rounded-lg">
+                            <button id="addQubitBtn" class="quantum-btn text-sm mb-2 w-full">
+                                <i class="fas fa-plus mr-1"></i> Add Qubit
+                            </button>
+                            <button id="resetSpheresBtn" class="quantum-btn text-sm w-full">
+                                <i class="fas fa-redo mr-1"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="particlesContent" class="tab-content">
+                    <div id="particle-system" class="h-96 w-full rounded-lg bg-black/30">
+                        <!-- p5.js will render here -->
+                        <div class="absolute bottom-4 right-4 bg-black/50 p-2 rounded-lg">
+                            <button id="moreParticlesBtn" class="quantum-btn text-sm mb-2 w-full">
+                                <i class="fas fa-plus mr-1"></i> More Particles
+                            </button>
+                            <button id="fewerParticlesBtn" class="quantum-btn text-sm w-full">
+                                <i class="fas fa-minus mr-1"></i> Fewer Particles
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="entanglementContent" class="tab-content">
+                    <div id="entanglement-visualization" class="h-96 w-full rounded-lg bg-black/30 flex items-center justify-center">
+                        <!-- Entanglement visualization will render here -->
+                        <div class="text-center">
+                            <p class="mb-4">Entanglement simulation - quantum states that affect each other regardless of distance.</p>
+                            <button id="entangleBtn" class="quantum-btn mb-4">
+                                <i class="fas fa-link mr-1"></i> Entangle Qubits
+                            </button>
+                            <div id="entanglement-controls" class="flex flex-col md:flex-row items-center justify-center space-y-2 md:space-y-0 md:space-x-4">
+                                <div class="bg-black/30 p-2 rounded-lg">
+                                    <p>Qubit A</p>
+                                    <div class="flex mt-2">
+                                        <button class="quantum-btn text-sm mr-2" id="qubitA-X">X</button>
+                                        <button class="quantum-btn text-sm mr-2" id="qubitA-Z">Z</button>
+                                        <button class="quantum-btn text-sm" id="qubitA-H">H</button>
+                                    </div>
+                                </div>
+                                <div class="bg-black/30 p-2 rounded-lg">
+                                    <p>Qubit B</p>
+                                    <div class="flex mt-2">
+                                        <button class="quantum-btn text-sm mr-2" id="qubitB-X">X</button>
+                                        <button class="quantum-btn text-sm mr-2" id="qubitB-Z">Z</button>
+                                        <button class="quantum-btn text-sm" id="qubitB-H">H</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column: Circuit Builder and Experiments -->
+            <div class="rounded-xl bg-gradient-to-br from-gray-900 to-purple-900 p-4 shadow-lg">
+                <h2 class="text-xl font-bold mb-3 flex items-center">
+                    <i class="fas fa-microchip mr-2 text-purple-400"></i>
+                    Quantum Circuit Builder
+                </h2>
+                
+                <!-- Available Gates -->
+                <div class="mb-4">
+                    <p class="mb-2 text-sm text-gray-300">Available Gates:</p>
+                    <div class="flex flex-wrap">
+                        <div class="gate gate-h" draggable="true" data-gate="h">H</div>
+                        <div class="gate gate-x" draggable="true" data-gate="x">X</div>
+                        <div class="gate gate-z" draggable="true" data-gate="z">Z</div>
+                        <div class="gate gate-y" draggable="true" data-gate="y">Y</div>
+                        <div class="gate gate-cnot" draggable="true" data-gate="cnot">CN</div>
+                    </div>
+                </div>
+                
+                <!-- Circuit Builder -->
+                <div class="circuit-builder mb-4">
+                    <div class="qubit-wire mb-2">
+                        <p class="w-8 mr-2 text-right">q₀:</p>
+                        <div class="dropzone flex-1" id="qubit0"></div>
+                    </div>
+                    <div class="qubit-wire mb-2">
+                        <p class="w-8 mr-2 text-right">q₁:</p>
+                        <div class="dropzone flex-1" id="qubit1"></div>
+                    </div>
+                    <div class="qubit-wire">
+                        <p class="w-8 mr-2 text-right">q₂:</p>
+                        <div class="dropzone flex-1" id="qubit2"></div>
+                    </div>
+                </div>
+                
+                <!-- Circuit Controls -->
+                <div class="flex mb-4">
+                    <button id="runCircuit" class="quantum-btn mr-2 flex-1">
+                        <i class="fas fa-play mr-1"></i> Run Circuit
+                    </button>
+                    <button id="clearCircuit" class="quantum-btn bg-red-500 flex-1">
+                        <i class="fas fa-trash mr-1"></i> Clear
+                    </button>
+                </div>
+                
+                <!-- Circuit Result -->
+                <div class="circuit-result mb-4">
+                    <p class="text-sm text-gray-300 mb-2">Circuit Output:</p>
+                    <div id="circuitOutput" class="text-center py-2">
+                        <p class="text-sm text-gray-400">Build and run a circuit to see the results</p>
+                    </div>
+                </div>
+                
+                <!-- Quantum Experiments -->
+                <div>
+                    <h3 class="text-lg font-bold mb-2 flex items-center">
+                        <i class="fas fa-flask mr-2 text-cyan-400"></i>
+                        Quantum Experiments
+                    </h3>
+                    <div class="experiment-card" id="bellState">
+                        <h4 class="font-bold">Bell State Generator</h4>
+                        <p class="text-sm text-gray-300">Create quantum entanglement between two qubits</p>
+                    </div>
+                    <div class="experiment-card" id="teleportation">
+                        <h4 class="font-bold">Quantum Teleportation</h4>
+                        <p class="text-sm text-gray-300">Transfer quantum information using entanglement</p>
+                    </div>
+                    <div class="experiment-card" id="superposition">
+                        <h4 class="font-bold">Superposition Explorer</h4>
+                        <p class="text-sm text-gray-300">Explore the quantum property of being in multiple states</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quantum Concepts Section -->
+        <div class="mt-8 rounded-xl bg-gradient-to-r from-indigo-900 to-purple-900 p-6 shadow-lg">
+            <h2 class="text-xl font-bold mb-4 flex items-center">
+                <i class="fas fa-brain mr-2 text-pink-400"></i>
+                Quantum Computing Concepts
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="concept-card" id="concept-superposition">
+                    <h3 class="font-bold text-cyan-400">Superposition</h3>
+                    <p class="text-sm">Unlike classical bits that are either 0 or 1, qubits can exist in multiple states simultaneously.</p>
+                </div>
+                <div class="concept-card" id="concept-entanglement">
+                    <h3 class="font-bold text-pink-400">Quantum Entanglement</h3>
+                    <p class="text-sm">When qubits become entangled, their states become correlated, regardless of distance.</p>
+                </div>
+                <div class="concept-card" id="concept-gates">
+                    <h3 class="font-bold text-green-400">Quantum Gates</h3>
+                    <p class="text-sm">Operations that manipulate qubits, similar to logical gates in classical computing.</p>
+                </div>
+                <div class="concept-card" id="concept-interference">
+                    <h3 class="font-bold text-yellow-400">Quantum Interference</h3>
+                    <p class="text-sm">Quantum states can interfere with each other, amplifying or canceling out probabilities.</p>
+                </div>
+                <div class="concept-card" id="concept-measurement">
+                    <h3 class="font-bold text-purple-400">Measurement</h3>
+                    <p class="text-sm">Observing a qubit collapses superposition to a definite state based on probability.</p>
+                </div>
+                <div class="concept-card" id="concept-applications">
+                    <h3 class="font-bold text-blue-400">Quantum Applications</h3>
+                    <p class="text-sm">From cryptography to drug discovery, quantum computing promises revolutionary advances.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="mt-8 py-6 bg-gray-900 text-center">
+        <p class="text-gray-400">Created for World Quantum Day | Experience the Quantum Revolution</p>
+        <div class="mt-2 flex justify-center space-x-4">
+            <a href="#" class="text-cyan-400 hover:text-cyan-300">
+                <i class="fab fa-twitter"></i>
+            </a>
+            <a href="#" class="text-blue-400 hover:text-blue-300">
+                <i class="fab fa-linkedin"></i>
+            </a>
+            <a href="#" class="text-red-400 hover:text-red-300">
+                <i class="fab fa-youtube"></i>
+            </a>
+        </div>
+    </footer>
+    
+    <!-- Modal for About -->
+    <div id="aboutModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeAboutModal">&times;</span>
+            <h2 class="text-2xl font-bold mb-4 text-center text-cyan-400">About World Quantum Day</h2>
+            <p class="mb-4">World Quantum Day is celebrated on April 14th (4.14, reminiscent of Planck's constant 4.14 × 10^(-15) eV·s). It's a global initiative to promote public understanding of quantum science and technology.</p>
+            <p class="mb-4">This interactive simulation offers a glimpse into the fascinating world of quantum computing, where the rules of classical physics no longer apply and new computational paradigms emerge.</p>
+            <h3 class="text-xl font-bold mb-2 text-purple-400">What makes quantum computing special?</h3>
+            <p class="mb-4">Quantum computers leverage quantum mechanical phenomena like superposition and entanglement to process information in ways that classical computers cannot. This gives them potential advantages for certain problems like factoring large numbers, searching unsorted databases, and simulating quantum systems.</p>
+            <h3 class="text-xl font-bold mb-2 text-pink-400">About this simulation</h3>
+            <p>This interactive experience allows you to:</p>
+            <ul class="list-disc ml-6 mb-4">
+                <li>Visualize qubits using Bloch spheres</li>
+                <li>Build and run quantum circuits</li>
+                <li>Explore quantum phenomena like superposition and entanglement</li>
+                <li>Learn about core quantum computing concepts</li>
+                <li>Try pre-designed quantum experiments</li>
+            </ul>
+            <p class="italic text-gray-300">Note: While this simulation provides an intuitive understanding of quantum concepts, it simplifies many aspects of real quantum systems.</p>
+        </div>
+    </div>
+    
+    <!-- Modal for Concept Details -->
+    <div id="conceptModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeConceptModal">&times;</span>
+            <div id="conceptContent">
+                <!-- Content will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for Experiments -->
+    <div id="experimentModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeExperimentModal">&times;</span>
+            <div id="experimentContent">
+                <!-- Content will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tutorial Steps -->
+    <div id="tutorialStep1" class="tutorial-step">
+        <h3 class="font-bold mb-2">Welcome to Quantum Computing!</h3>
+        <p class="mb-4">This tutorial will guide you through the basics of this simulation.</p>
+        <button id="nextTutorial1" class="quantum-btn w-full">Next</button>
+    </div>
+    
+    <div id="tutorialStep2" class="tutorial-step">
+        <h3 class="font-bold mb-2">Quantum Visualization</h3>
+        <p class="mb-4">This 3D visualization shows qubits as Bloch spheres. Rotate the view by dragging and zoom with your scroll wheel.</p>
+        <button id="nextTutorial2" class="quantum-btn w-full">Next</button>
+    </div>
+    
+    <div id="tutorialStep3" class="tutorial-step">
+        <h3 class="font-bold mb-2">Circuit Builder</h3>
+        <p class="mb-4">Drag and drop quantum gates onto the qubit wires to build your circuit, then run it to see the results.</p>
+        <button id="nextTutorial3" class="quantum-btn w-full">Next</button>
+    </div>
+    
+    <div id="tutorialStep4" class="tutorial-step">
+        <h3 class="font-bold mb-2">Quantum Experiments</h3>
+        <p class="mb-4">Try these pre-designed experiments to see quantum principles in action.</p>
+        <button id="nextTutorial4" class="quantum-btn w-full">Next</button>
+    </div>
+    
+    <div id="tutorialStep5" class="tutorial-step">
+        <h3 class="font-bold mb-2">Quantum Concepts</h3>
+        <p class="mb-4">Click on these cards to learn more about the fundamental concepts of quantum computing.</p>
+        <button id="finishTutorial" class="quantum-btn w-full">Finish Tutorial</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update progress bar as user scrolls
+            window.addEventListener('scroll', function() {
+                const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+                const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                const scrolled = (winScroll / height) * 100;
+                document.getElementById('progressBar').style.width = scrolled + '%';
+            });
+            
+            // Modal controls
+            const aboutBtn = document.getElementById('aboutBtn');
+            const aboutModal = document.getElementById('aboutModal');
+            const closeAboutModal = document.getElementById('closeAboutModal');
+            
+            aboutBtn.addEventListener('click', function() {
+                aboutModal.style.display = 'flex';
+            });
+            
+            closeAboutModal.addEventListener('click', function() {
+                aboutModal.style.display = 'none';
+            });
+            
+            // Concept modals
+            const conceptModal = document.getElementById('conceptModal');
+            const closeConceptModal = document.getElementById('closeConceptModal');
+            const conceptContent = document.getElementById('conceptContent');
+            
+            const conceptData = {
+                'concept-superposition': {
+                    title: 'Quantum Superposition',
+                    color: 'text-cyan-400',
+                    content: `
+                        <p class="mb-4">Superposition is one of the most mind-bending aspects of quantum mechanics. While a classical bit must be either 0 or 1, a qubit can exist in a combination of both states simultaneously.</p>
+                        <p class="mb-4">Mathematically, we represent this as: |ψ⟩ = α|0⟩ + β|1⟩, where α and β are complex numbers representing probability amplitudes, and |α|² + |β|² = 1.</p>
+                        <p class="mb-4">This property allows quantum computers to process multiple possibilities simultaneously, creating a form of parallelism that's fundamentally different from classical parallel computing.</p>
+                        <h3 class="font-bold mb-2">Real-world example:</h3>
+                        <p class="mb-4">When factoring large numbers, a quantum computer can explore multiple factors simultaneously through superposition, potentially offering exponential speedup over classical methods.</p>
+                        <p class="mb-4">However, when measured, a qubit in superposition will collapse to either |0⟩ or |1⟩ with probabilities determined by |α|² and |β|² respectively.</p>
+                        <div class="mt-4 p-3 bg-cyan-900/30 rounded-lg">
+                            <p class="italic">Try it yourself: In the Quantum Visualization tab, add a qubit and apply an H (Hadamard) gate to create a superposition state.</p>
+                        </div>
+                    `
+                },
+                'concept-entanglement': {
+                    title: 'Quantum Entanglement',
+                    color: 'text-pink-400',
+                    content: `
+                        <p class="mb-4">Quantum entanglement occurs when two or more qubits become correlated in such a way that the quantum state of each particle cannot be described independently of the others—regardless of the distance separating them.</p>
+                        <p class="mb-4">Einstein famously referred to this as "spooky action at a distance." When you measure one qubit of an entangled pair, you instantly know the state of the other, even if it's across the universe.</p>
+                        <p class="mb-4">A common entangled state is the Bell state: |ψ⟩ = (|00⟩ + |11⟩)/√2</p>
+                        <p class="mb-4">This means that if you measure the first qubit and get 0, the second qubit will also be 0. Similarly, if you measure the first qubit and get 1, the second qubit will also be 1.</p>
+                        <h3 class="font-bold mb-2">Applications:</h3>
+                        <p class="mb-4">Entanglement enables quantum teleportation, super-dense coding, and is essential for many quantum algorithms. It's also the basis for quantum key distribution in cryptography.</p>
+                        <div class="mt-4 p-3 bg-pink-900/30 rounded-lg">
+                            <p class="italic">Try it yourself: Run the Bell State experiment to see entanglement in action.</p>
+                        </div>
+                    `
+                },
+                'concept-gates': {
+                    title: 'Quantum Gates',
+                    color: 'text-green-400',
+                    content: `
+                        <p class="mb-4">Quantum gates are the building blocks of quantum circuits. They perform operations on qubits, similar to how logic gates manipulate classical bits.</p>
+                        <p class="mb-4">Unlike many classical gates, quantum gates are reversible and preserve the normalization of quantum states.</p>
+                        <h3 class="font-bold mb-2">Common quantum gates:</h3>
+                        <ul class="list-disc ml-6 mb-4">
+                            <li><strong>Hadamard (H)</strong>: Creates superposition by transforming |0⟩ to (|0⟩ + |1⟩)/√2 and |1⟩ to (|0⟩ - |1⟩)/√2</li>
+                            <li><strong>Pauli-X</strong>: Quantum equivalent of the NOT gate, flips |0⟩ to |1⟩ and vice versa</li>
+                            <li><strong>Pauli-Z</strong>: Flips the phase of |1⟩ state by applying a π rotation around the z-axis</li>
+                            <li><strong>CNOT</strong>: Two-qubit gate that flips the target qubit if the control qubit is |1⟩, critical for creating entanglement</li>
+                        </ul>
+                        <p class="mb-4">Quantum gates can be represented as matrices, and applying a gate to a qubit corresponds to multiplying the qubit's state vector by the gate's matrix.</p>
+                        <div class="mt-4 p-3 bg-green-900/30 rounded-lg">
+                            <p class="italic">Try it yourself: Use the Circuit Builder to apply different gates and observe their effects.</p>
+                        </div>
+                    `
+                },
+                'concept-interference': {
+                    title: 'Quantum Interference',
+                    color: 'text-yellow-400',
+                    content: `
+                        <p class="mb-4">Quantum interference is a phenomenon where quantum states can constructively or destructively interfere with each other, altering the probability of various outcomes.</p>
+                        <p class="mb-4">This is a direct consequence of the wave-like nature of quantum systems and is crucial for quantum algorithms to work.</p>
+                        <p class="mb-4">For example, in the double-slit experiment, a single particle can interfere with itself, creating an interference pattern as if it went through both slits simultaneously.</p>
+                        <h3 class="font-bold mb-2">Applications:</h3>
+                        <p class="mb-4">Quantum interference is the key mechanism behind Grover's search algorithm, which can search an unsorted database quadratically faster than classical algorithms.</p>
+                        <p class="mb-4">In quantum computing, we carefully design sequences of quantum gates to create interference patterns that amplify the probability of correct answers while suppressing incorrect ones.</p>
+                        <div class="mt-4 p-3 bg-yellow-900/30 rounded-lg">
+                            <p class="italic">Try it yourself: In the Quantum Visualization, apply an H gate, then a Z gate, then another H gate to a qubit to see interference in action.</p>
+                        </div>
+                    `
+                },
+                'concept-measurement': {
+                    title: 'Quantum Measurement',
+                    color: 'text-purple-400',
+                    content: `
+                        <p class="mb-4">Measurement is the process of observing a quantum system, which causes it to collapse from a superposition of states to a single definite state.</p>
+                        <p class="mb-4">This collapse is probabilistic, with outcomes determined by the probability amplitudes in the quantum state.</p>
+                        <p class="mb-4">For a qubit in state |ψ⟩ = α|0⟩ + β|1⟩, the probability of measuring |0⟩ is |α|² and the probability of measuring |1⟩ is |β|².</p>
+                        <h3 class="font-bold mb-2">The measurement problem:</h3>
+                        <p class="mb-4">The exact nature of quantum measurement remains one of the most profound questions in physics. Different interpretations like Copenhagen, Many-Worlds, and Quantum Decoherence offer various explanations.</p>
+                        <p class="mb-4">In quantum computing, measurement is typically performed at the end of an algorithm to read out the result, although mid-circuit measurements are also possible in some architectures.</p>
+                        <div class="mt-4 p-3 bg-purple-900/30 rounded-lg">
+                            <p class="italic">Try it yourself: Create a superposition with the H gate, then run the circuit multiple times to see the probabilistic nature of measurement.</p>
+                        </div>
+                    `
+                },
+                'concept-applications': {
+                    title: 'Quantum Computing Applications',
+                    color: 'text-blue-400',
+                    content: `
+                        <p class="mb-4">Quantum computing promises revolutionary advances across numerous fields, though many applications require fault-tolerant quantum computers that are still being developed.</p>
+                        <h3 class="font-bold mb-2">Key applications:</h3>
+                        <ul class="list-disc ml-6 mb-4">
+                            <li><strong>Cryptography</strong>: Shor's algorithm can efficiently factor large numbers, potentially breaking RSA encryption. Conversely, quantum key distribution offers theoretically unbreakable encryption.</li>
+                            <li><strong>Drug Discovery</strong>: Quantum computers can efficiently simulate molecular interactions, potentially revolutionizing pharmaceutical research.</li>
+                            <li><strong>Materials Science</strong>: Precise simulation of quantum mechanical systems could lead to the discovery of new materials with revolutionary properties.</li>
+                            <li><strong>Optimization</strong>: Problems like route optimization, portfolio optimization, and machine learning training could see significant speedups.</li>
+                            <li><strong>Artificial Intelligence</strong>: Quantum machine learning algorithms may offer advantages for certain classes of problems.</li>
+                        </ul>
+                        <p class="mb-4">Many companies and research institutions are racing to develop quantum computers with enough qubits and low enough error rates to achieve "quantum advantage"—solving problems beyond the reach of classical computers.</p>
+                        <div class="mt-4 p-3 bg-blue-900/30 rounded-lg">
+                            <p class="italic">Current quantum computers are still in the NISQ (Noisy Intermediate-Scale Quantum) era, with significant limitations in qubit count and coherence times. However, rapid progress is being made.</p>
+                        </div>
+                    `
+                }
+            };
+            
+            document.querySelectorAll('.concept-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const conceptId = this.id;
+                    const data = conceptData[conceptId];
+                    
+                    conceptContent.innerHTML = `
+                        <h2 class="text-2xl font-bold mb-4 ${data.color}">${data.title}</h2>
+                        ${data.content}
+                    `;
+                    
+                    conceptModal.style.display = 'flex';
+                });
+            });
+            
+            closeConceptModal.addEventListener('click', function() {
+                conceptModal.style.display = 'none';
+            });
+            
+            // Experiment Modals
+            const experimentModal = document.getElementById('experimentModal');
+            const closeExperimentModal = document.getElementById('closeExperimentModal');
+            const experimentContent = document.getElementById('experimentContent');
+            
+            const experimentData = {
+                'bellState': {
+                    title: 'Bell State Generator',
+                    content: `
+                        <p class="mb-4">The Bell state is one of the simplest examples of quantum entanglement. This experiment creates the state:</p>
+                        <p class="mb-4 text-center text-lg">|ψ⟩ = (|00⟩ + |11⟩)/√2</p>
+                        <p class="mb-4">This means that when measured, both qubits will always yield the same result: either both 0 or both 1, with equal probability.</p>
+                        
+                        <h3 class="font-bold mb-2">Circuit Implementation:</h3>
+                        <p class="mb-4">1. Start with two qubits in the |0⟩ state</p>
+                        <p class="mb-4">2. Apply a Hadamard (H) gate to the first qubit, creating superposition</p>
+                        <p class="mb-4">3. Apply a CNOT gate with the first qubit as control and the second as target</p>
+                        
+                        <div class="flex justify-center my-4">
+                            <button id="loadBellCircuit" class="quantum-btn">Load This Circuit</button>
+                        </div>
+                        
+                        <h3 class="font-bold mb-2">Applications:</h3>
+                        <p class="mb-4">Bell states are fundamental in quantum teleportation, superdense coding, and quantum key distribution protocols.</p>
+                        
+                        <p class="mt-4 text-sm text-gray-400">Note: When you run this circuit, you'll notice that measuring either qubit appears random, but the results are always perfectly correlated.</p>
+                    `
+                },
+                'teleportation': {
+                    title: 'Quantum Teleportation',
+                    content: `
+                        <p class="mb-4">Quantum teleportation allows the transfer of a quantum state from one location to another, using entanglement and classical communication.</p>
+                        <p class="mb-4">Despite its name, it doesn't instantaneously transport particles or matter - it transfers quantum information.</p>
+                        
+                        <h3 class="font-bold mb-2">How it works:</h3>
+                        <p class="mb-4">1. Alice has a qubit in some unknown state |ψ⟩ she wants to send to Bob</p>
+                        <p class="mb-4">2. Alice and Bob share an entangled pair of qubits (a Bell pair)</p>
+                        <p class="mb-4">3. Alice performs a Bell measurement on her unknown qubit and her half of the entangled pair</p>
+                        <p class="mb-4">4. Alice sends the classical measurement result to Bob</p>
+                        <p class="mb-4">5. Based on Alice's message, Bob applies specific quantum gates to his qubit</p>
+                        <p class="mb-4">6. Bob's qubit is now in the state |ψ⟩, the same as Alice's original qubit</p>
+                        
+                        <div class="flex justify-center my-4">
+                            <button id="loadTeleportationCircuit" class="quantum-btn">Load Simplified Circuit</button>
+                        </div>
+                        
+                        <p class="mt-4 text-sm text-gray-400">Note: Our simulation implements a simplified version of the teleportation protocol due to the constraints of our circuit model.</p>
+                    `
+                },
+                'superposition': {
+                    title: 'Superposition Explorer',
+                    content: `
+                        <p class="mb-4">Superposition is the ability of a quantum system to exist in multiple states simultaneously, and is one of the fundamental features that gives quantum computing its power.</p>
+                        
+                        <h3 class="font-bold mb-2">What this experiment demonstrates:</h3>
+                        <p class="mb-4">This experiment allows you to create various superposition states and visualize them on the Bloch sphere.</p>
+                        
+                        <h3 class="font-bold mb-2">Different superposition states:</h3>
+                        <p class="mb-4"><strong>Equal superposition:</strong> |ψ⟩ = (|0⟩ + |1⟩)/√2 - Created by the H gate</p>
+                        <p class="mb-4"><strong>Phase-shifted superposition:</strong> |ψ⟩ = (|0⟩ + i|1⟩)/√2 - Created by H then S gates</p>
+                        <p class="mb-4"><strong>Custom superposition:</strong> |ψ⟩ = α|0⟩ + β|1⟩ - Where |α|² + |β|² = 1</p>
+                        
+                        <div class="flex justify-center my-4 space-x-4">
+                            <button id="loadEqualSuperposition" class="quantum-btn">Equal Superposition</button>
+                            <button id="loadPhaseSuperposition" class="quantum-btn">Phase Superposition</button>
+                        </div>
+                        
+                        <h3 class="font-bold mb-2">What to observe:</h3>
+                        <p class="mb-4">1. The Bloch sphere representation of the qubit state</p>
+                        <p class="mb-4">2. How gates transform the state by rotating the vector</p>
+                        <p class="mb-4">3. Measurement probabilities changing based on the superposition</p>
+                        
+                        <p class="mt-4 text-sm text-gray-400">Superposition is the key to quantum parallelism, allowing quantum algorithms to consider multiple possibilities simultaneously.</p>
+                    `
+                }
+            };
+            
+            document.querySelectorAll('.experiment-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const experimentId = this.id;
+                    const data = experimentData[experimentId];
+                    
+                    experimentContent.innerHTML = `
+                        <h2 class="text-2xl font-bold mb-4 text-purple-400">${data.title}</h2>
+                        ${data.content}
+                    `;
+                    
+                    experimentModal.style.display = 'flex';
+                });
+            });
+            
+            closeExperimentModal.addEventListener('click', function() {
+                experimentModal.style.display = 'none';
+            });
+            
+            // Tab switching functionality
+            const tabs = {
+                'spheresTab': 'spheresContent',
+                'particlesTab': 'particlesContent',
+                'entanglementTab': 'entanglementContent'
+            };
+            
+            Object.keys(tabs).forEach(tabId => {
+                document.getElementById(tabId).addEventListener('click', function() {
+                    // Deactivate all tabs
+                    Object.values(tabs).forEach(contentId => {
+                        document.getElementById(contentId).classList.remove('active');
+                    });
+                    
+                    Object.keys(tabs).forEach(id => {
+                        document.getElementById(id).classList.remove('active');
+                    });
+                    
+                    // Activate clicked tab
+                    this.classList.add('active');
+                    document.getElementById(tabs[tabId]).classList.add('active');
+                });
+            });
+            
+            // Circuit Builder Functionality
+            let circuit = {
+                qubit0: [],
+                qubit1: [],
+                qubit2: []
+            };
+            
+            // Drag and drop functionality
+            document.querySelectorAll('.gate').forEach(gate => {
+                gate.addEventListener('dragstart', function(e) {
+                    e.dataTransfer.setData('text/plain', this.dataset.gate);
+                });
+            });
+            
+            document.querySelectorAll('.dropzone').forEach(dropzone => {
+                dropzone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    this.classList.add('active');
+                });
+                
+                dropzone.addEventListener('dragleave', function() {
+                    this.classList.remove('active');
+                });
+                
+                dropzone.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('active');
+                    
+                    const gate = e.dataTransfer.getData('text/plain');
+                    const qubitId = this.id;
+                    
+                    // Create gate element
+                    const gateEl = document.createElement('div');
+                    gateEl.className = `gate gate-${gate}`;
+                    gateEl.textContent = gate.toUpperCase();
+                    
+                    // Add to circuit data structure
+                    circuit[qubitId].push(gate);
+                    
+                    // Add to UI
+                    this.appendChild(gateEl);
+                    
+                    // Special case for CNOT gate
+                    if (gate === 'cnot') {
+                        // Determine target qubit (next one down)
+                        const qubitNum = parseInt(qubitId.replace('qubit', ''));
+                        if (qubitNum < 2) {
+                            const targetQubitId = `qubit${qubitNum + 1}`;
+                            const targetEl = document.createElement('div');
+                            targetEl.className = 'gate-target';
+                            targetEl.textContent = '⊕';
+                            document.getElementById(targetQubitId).appendChild(targetEl);
+                        }
+                    }
+                });
+            });
+            
+            // Run and Clear Circuit buttons
+            document.getElementById('runCircuit').addEventListener('click', function() {
+                // Simply simulation using jsqubits
+                try {
+                    let qubits = jsqubits('|000⟩');
+                    
+                    // Apply gates for qubit 0
+                    circuit.qubit0.forEach(gate => {
+                        switch(gate) {
+                            case 'h': qubits = qubits.hadamard(0); break;
+                            case 'x': qubits = qubits.pauliX(0); break;
+                            case 'z': qubits = qubits.pauliZ(0); break;
+                            case 'y': qubits = qubits.pauliY(0); break;
+                            case 'cnot': qubits = qubits.cnot(0, 1); break;
+                        }
+                    });
+                    
+                    // Apply gates for qubit 1
+                    circuit.qubit1.forEach(gate => {
+                        switch(gate) {
+                            case 'h': qubits = qubits.hadamard(1); break;
+                            case 'x': qubits = qubits.pauliX(1); break;
+                            case 'z': qubits = qubits.pauliZ(1); break;
+                            case 'y': qubits = qubits.pauliY(1); break;
+                            case 'cnot': qubits = qubits.cnot(1, 2); break;
+                        }
+                    });
+                    
+                    // Apply gates for qubit 2
+                    circuit.qubit2.forEach(gate => {
+                        switch(gate) {
+                            case 'h': qubits = qubits.hadamard(2); break;
+                            case 'x': qubits = qubits.pauliX(2); break;
+                            case 'z': qubits = qubits.pauliZ(2); break;
+                            case 'y': qubits = qubits.pauliY(2); break;
+                        }
+                    });
+                    
+                    // Get state and probabilities
+                    const stateString = qubits.toString();
+                    const probabilities = [];
+                    
+                    for (let i = 0; i < 8; i++) {
+                        const bitString = i.toString(2).padStart(3, '0');
+                        const amplitude = qubits.amplitude(`|${bitString}⟩`);
+                        const probability = amplitude.magnitude() * amplitude.magnitude();
+                        
+                        if (probability > 0.001) {
+                            probabilities.push({
+                                state: `|${bitString}⟩`,
+                                probability: Math.round(probability * 100)
+                            });
+                        }
+                    }
+                    
+                    // Update output
+                    const outputHTML = `
+                        <p class="font-bold mb-2">Quantum State:</p>
+                        <p class="mb-3">${stateString}</p>
+                        <p class="font-bold mb-2">Measurement Probabilities:</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            ${probabilities.map(p => `
+                                <div class="bg-gradient-to-r from-purple-900/50 to-indigo-900/50 p-2 rounded-lg">
+                                    <div class="flex justify-between items-center">
+                                        <span>${p.state}</span>
+                                        <span class="font-bold">${p.probability}%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-700 rounded-full h-2 mt-1">
+                                        <div class="bg-gradient-to-r from-purple-500 to-cyan-400 h-2 rounded-full" style="width: ${p.probability}%"></div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    
+                    document.getElementById('circuitOutput').innerHTML = outputHTML;
+                    
+                    // Update 3D visualization
+                    updateQuantumVisualization(qubits);
+                    
+                } catch (error) {
+                    document.getElementById('circuitOutput').innerHTML = `
+                        <p class="text-red-500">Error: ${error.message}</p>
+                        <p class="text-sm text-gray-400">Check your circuit configuration.</p>
+                    `;
+                }
+            });
+            
+            document.getElementById('clearCircuit').addEventListener('click', function() {
+                // Clear data structure
+                circuit = {
+                    qubit0: [],
+                    qubit1: [],
+                    qubit2: []
+                };
+                
+                // Clear UI
+                document.querySelectorAll('.dropzone').forEach(dropzone => {
+                    dropzone.innerHTML = '';
+                });
+                
+                // Reset output
+                document.getElementById('circuitOutput').innerHTML = `
+                    <p class="text-sm text-gray-400">Build and run a circuit to see the results</p>
+                `;
+                
+                // Reset visualization
+                resetQuantumVisualization();
+            });
+            
+            // Circuit experiment loaders
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.id === 'loadBellCircuit') {
+                    // Clear current circuit
+                    document.getElementById('clearCircuit').click();
+                    
+                    // Create Bell state circuit: H on qubit0, CNOT from qubit0 to qubit1
+                    setTimeout(() => {
+                        // Add H gate to qubit0
+                        const hGate = document.createElement('div');
+                        hGate.className = 'gate gate-h';
+                        hGate.textContent = 'H';
+                        document.getElementById('qubit0').appendChild(hGate);
+                        circuit.qubit0.push('h');
+                        
+                        // Add CNOT gate
+                        const cnotGate = document.createElement('div');
+                        cnotGate.className = 'gate gate-cnot';
+                        cnotGate.textContent = 'CN';
+                        document.getElementById('qubit0').appendChild(cnotGate);
+                        circuit.qubit0.push('cnot');
+                        
+                        // Add target for CNOT
+                        const targetEl = document.createElement('div');
+                        targetEl.className = 'gate-target';
+                        targetEl.textContent = '⊕';
+                        document.getElementById('qubit1').appendChild(targetEl);
+                        
+                        // Close the modal
+                        experimentModal.style.display = 'none';
+                    }, 100);
+                }
+                
+                if (e.target && e.target.id === 'loadTeleportationCircuit') {
+                    // Clear current circuit
+                    document.getElementById('clearCircuit').click();
+                    
+                    // Create simplified teleportation circuit
+                    setTimeout(() => {
+                        // Bell pair creation between qubit1 and qubit2
+                        const h1Gate = document.createElement('div');
+                        h1Gate.className = 'gate gate-h';
+                        h1Gate.textContent = 'H';
+                        document.getElementById('qubit1').appendChild(h1Gate);
+                        circuit.qubit1.push('h');
+                        
+                        const cnotGate1 = document.createElement('div');
+                        cnotGate1.className = 'gate gate-cnot';
+                        cnotGate1.textContent = 'CN';
+                        document.getElementById('qubit1').appendChild(cnotGate1);
+                        circuit.qubit1.push('cnot');
+                        
+                        const targetEl1 = document.createElement('div');
+                        targetEl1.className = 'gate-target';
+                        targetEl1.textContent = '⊕';
+                        document.getElementById('qubit2').appendChild(targetEl1);
+                        
+                        // Set qubit0 to the state we want to teleport
+                        const xGate = document.createElement('div');
+                        xGate.className = 'gate gate-x';
+                        xGate.textContent = 'X';
+                        document.getElementById('qubit0').appendChild(xGate);
+                        circuit.qubit0.push('x');
+                        
+                        // Teleportation operations
+                        const cnotGate2 = document.createElement('div');
+                        cnotGate2.className = 'gate gate-cnot';
+                        cnotGate2.textContent = 'CN';
+                        document.getElementById('qubit0').appendChild(cnotGate2);
+                        circuit.qubit0.push('cnot');
+                        
+                        const targetEl2 = document.createElement('div');
+                        targetEl2.className = 'gate-target';
+                        targetEl2.textContent = '⊕';
+                        document.getElementById('qubit1').appendChild(targetEl2);
+                        
+                        const h2Gate = document.createElement('div');
+                        h2Gate.className = 'gate gate-h';
+                        h2Gate.textContent = 'H';
+                        document.getElementById('qubit0').appendChild(h2Gate);
+                        circuit.qubit0.push('h');
+                        
+                        // Close the modal
+                        experimentModal.style.display = 'none';
+                    }, 100);
+                }
+                
+                if (e.target && e.target.id === 'loadEqualSuperposition') {
+                    // Clear current circuit
+                    document.getElementById('clearCircuit').click();
+                    
+                    // Create equal superposition with H gate
+                    setTimeout(() => {
+                        const hGate = document.createElement('div');
+                        hGate.className = 'gate gate-h';
+                        hGate.textContent = 'H';
+                        document.getElementById('qubit0').appendChild(hGate);
+                        circuit.qubit0.push('h');
+                        
+                        // Close the modal
+                        experimentModal.style.display = 'none';
+                    }, 100);
+                }
+                
+                if (e.target && e.target.id === 'loadPhaseSuperposition') {
+                    // Clear current circuit
+                    document.getElementById('clearCircuit').click();
+                    
+                    // Create phase-shifted superposition with H and Z gates
+                    setTimeout(() => {
+                        const hGate = document.createElement('div');
+                        hGate.className = 'gate gate-h';
+                        hGate.textContent = 'H';
+                        document.getElementById('qubit0').appendChild(hGate);
+                        circuit.qubit0.push('h');
+                        
+                        const zGate = document.createElement('div');
+                        zGate.className = 'gate gate-z';
+                        zGate.textContent = 'Z';
+                        document.getElementById('qubit0').appendChild(zGate);
+                        circuit.qubit0.push('z');
+                        
+                        // Close the modal
+                        experimentModal.style.display = 'none';
+                    }, 100);
+                }
+            });
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', function(e) {
+                if (e.target === aboutModal) {
+                    aboutModal.style.display = 'none';
+                }
+                if (e.target === conceptModal) {
+                    conceptModal.style.display = 'none';
+                }
+                if (e.target === experimentModal) {
+                    experimentModal.style.display = 'none';
+                }
+            });
+            
+            // Initialize Three.js for Quantum Spheres Visualization
+            let scene, camera, renderer, controls;
+            let sphereMeshes = [];
+            
+            function initThreeJS() {
+                // Create scene
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x111133);
+                
+                // Create camera
+                camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+                camera.position.z = 5;
+                
+                // Create renderer
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(document.getElementById('quantum-spheres-container').clientWidth, 
+                                 document.getElementById('quantum-spheres-container').clientHeight);
+                document.getElementById('quantum-spheres-container').appendChild(renderer.domElement);
+                
+                // Add orbit controls
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.25;
+                
+                // Add ambient light
+                const ambientLight = new THREE.AmbientLight(0x404040);
+                scene.add(ambientLight);
+                
+                // Add directional light
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+                directionalLight.position.set(1, 1, 1);
+                scene.add(directionalLight);
+                
+                // Add a single qubit sphere
+                addQubitSphere(0, 0, 0);
+                
+                // Animation loop
+                function animate() {
+                    requestAnimationFrame(animate);
+                    
+                    controls.update();
+                    
+                    // Rotate qubit spheres
+                    sphereMeshes.forEach((mesh, index) => {
+                        mesh.rotation.y += 0.005;
+                        if (index % 2 === 0) {
+                            mesh.rotation.x += 0.003;
+                        } else {
+                            mesh.rotation.z += 0.003;
+                        }
+                    });
+                    
+                    renderer.render(scene, camera);
+                }
+                
+                animate();
+                
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    const container = document.getElementById('quantum-spheres-container');
+                    const width = container.clientWidth;
+                    const height = container.clientHeight;
+                    
+                    renderer.setSize(width, height);
+                    camera.aspect = width / height;
+                    camera.updateProjectionMatrix();
+                });
+            }
+            
+            function addQubitSphere(x, y, z) {
+                // Create the Bloch sphere
+                const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+                const sphereMaterial = new THREE.MeshPhongMaterial({ 
+                    color: 0x8b5cf6,
+                    transparent: true,
+                    opacity: 0.7,
+                    wireframe: false
+                });
+                const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+                
+                // Create wireframe
+                const wireframeGeometry = new THREE.WireframeGeometry(sphereGeometry);
+                const wireframeMaterial = new THREE.LineBasicMaterial({ 
+                    color: 0xffffff,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const wireframe = new THREE.LineSegments(wireframeGeometry, wireframeMaterial);
+                
+                // Create axes
+                const axisLength = 1.5;
+                
+                // X axis (red)
+                const xAxisGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(-axisLength, 0, 0),
+                    new THREE.Vector3(axisLength, 0, 0)
+                ]);
+                const xAxisMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
+                const xAxis = new THREE.Line(xAxisGeometry, xAxisMaterial);
+                
+                // Y axis (green)
+                const yAxisGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, -axisLength, 0),
+                    new THREE.Vector3(0, axisLength, 0)
+                ]);
+                const yAxisMaterial = new THREE.LineBasicMaterial({ color: 0x00ff00 });
+                const yAxis = new THREE.Line(yAxisGeometry, yAxisMaterial);
+                
+                // Z axis (blue)
+                const zAxisGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, -axisLength),
+                    new THREE.Vector3(0, 0, axisLength)
+                ]);
+                const zAxisMaterial = new THREE.LineBasicMaterial({ color: 0x0088ff });
+                const zAxis = new THREE.Line(zAxisGeometry, zAxisMaterial);
+                
+                // State vector arrow
+                const arrowGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(0, 0, 1)
+                ]);
+                const arrowMaterial = new THREE.LineBasicMaterial({ color: 0xffff00 });
+                const arrow = new THREE.Line(arrowGeometry, arrowMaterial);
+                
+                // Create group and add everything
+                const group = new THREE.Group();
+                group.add(sphere);
+                group.add(wireframe);
+                group.add(xAxis);
+                group.add(yAxis);
+                group.add(zAxis);
+                group.add(arrow);
+                
+                // Position the group
+                group.position.set(x, y, z);
+                
+                // Add to scene and store reference
+                scene.add(group);
+                sphereMeshes.push(group);
+                
+                // Update camera if this is the first or we have multiple qubits
+                if (sphereMeshes.length > 1) {
+                    camera.position.z = 3 + sphereMeshes.length * 2;
+                    adjustSpherePositions();
+                }
+                
+                return group;
+            }
+            
+            function adjustSpherePositions() {
+                const spacing = 3;
+                const totalWidth = (sphereMeshes.length - 1) * spacing;
+                
+                sphereMeshes.forEach((mesh, index) => {
+                    const x = -totalWidth/2 + index * spacing;
+                    gsap.to(mesh.position, { 
+                        x: x, 
+                        duration: 1, 
+                        ease: "power2.out" 
+                    });
+                });
+            }
+            
+            function updateStateVector(mesh, theta, phi) {
+                // Get the arrow (last child)
+                const arrow = mesh.children[5];
+                
+                // Calculate 3D position from spherical coordinates
+                const x = Math.sin(theta) * Math.cos(phi);
+                const y = Math.sin(theta) * Math.sin(phi);
+                const z = Math.cos(theta);
+                
+                // Update arrow
+                const arrowGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(x, y, z)
+                ]);
+                arrow.geometry.dispose();
+                arrow.geometry = arrowGeometry;
+            }
+            
+            function updateQuantumVisualization(qubits) {
+                // Make sure we have enough spheres for our qubits
+                const numQubits = 3; // Fixed for our demonstration
+                
+                while (sphereMeshes.length < numQubits) {
+                    addQubitSphere(0, 0, 0);
+                }
+                
+                // Update state vectors
+                // This is a simplified approximation - proper visualization would analyze
+                // the full quantum state and extract the single-qubit Bloch vectors
+                try {
+                    // Update qubit 0
+                    let theta0 = Math.PI/2, phi0 = 0;
+                    if (circuit.qubit0.includes('x')) theta0 = Math.PI/2 + Math.PI;
+                    if (circuit.qubit0.includes('h')) phi0 = Math.PI/2;
+                    if (circuit.qubit0.includes('z') && circuit.qubit0.includes('h')) phi0 = -Math.PI/2;
+                    updateStateVector(sphereMeshes[0], theta0, phi0);
+                    
+                    // Update qubit 1
+                    let theta1 = Math.PI/2, phi1 = 0;
+                    if (circuit.qubit1.includes('x')) theta1 = Math.PI/2 + Math.PI;
+                    if (circuit.qubit1.includes('h')) phi1 = Math.PI/2;
+                    if (circuit.qubit1.includes('z') && circuit.qubit1.includes('h')) phi1 = -Math.PI/2;
+                    updateStateVector(sphereMeshes[1], theta1, phi1);
+                    
+                    // Update qubit 2
+                    let theta2 = Math.PI/2, phi2 = 0;
+                    if (circuit.qubit2.includes('x')) theta2 = Math.PI/2 + Math.PI;
+                    if (circuit.qubit2.includes('h')) phi2 = Math.PI/2;
+                    if (circuit.qubit2.includes('z') && circuit.qubit2.includes('h')) phi2 = -Math.PI/2;
+                    updateStateVector(sphereMeshes[2], theta2, phi2);
+                    
+                } catch (e) {
+                    console.error("Error updating quantum visualization:", e);
+                }
+            }
+            
+            function resetQuantumVisualization() {
+                sphereMeshes.forEach(mesh => {
+                    updateStateVector(mesh, Math.PI/2, 0);
+                });
+            }
+            
+            // Add qubit button
+            document.getElementById('addQubitBtn').addEventListener('click', function() {
+                if (sphereMeshes.length < 5) { // Limit to 5 qubits for visual clarity
+                    addQubitSphere(0, 0, 0);
+                }
+            });
+            
+            // Reset spheres button
+            document.getElementById('resetSpheresBtn').addEventListener('click', function() {
+                // Remove all but one sphere
+                while (sphereMeshes.length > 1) {
+                    const mesh = sphereMeshes.pop();
+                    scene.remove(mesh);
+                }
+                
+                // Reset camera position
+                camera.position.z = 5;
+                
+                // Reset the remaining sphere
+                resetQuantumVisualization();
+            });
+            
+            // Initialize p5.js Particle System
+            let p5Instance = null;
+            
+            function initP5() {
+                const sketch = function(p) {
+                    let particles = [];
+                    let numParticles = 50;
+                    
+                    p.setup = function() {
+                        const container = document.getElementById('particle-system');
+                        p.createCanvas(container.clientWidth, container.clientHeight);
+                        
+                        // Initialize particles
+                        for (let i = 0; i < numParticles; i++) {
+                            particles.push(new QuantumParticle());
+                        }
+                        
+                        // Adjust for retina displays
+                        p.pixelDensity(1);
+                    };
+                    
+                    p.draw = function() {
+                        p.background(20, 20, 40, 10);
+                        
+                        // Draw connections between particles (entanglement)
+                        p.stroke(100, 100, 255, 50);
+                        p.strokeWeight(1);
+                        for (let i = 0; i < particles.length; i++) {
+                            for (let j = i + 1; j < particles.length; j++) {
+                                let d = p.dist(particles[i].pos.x, particles[i].pos.y, 
+                                              particles[j].pos.x, particles[j].pos.y);
+                                if (d < 100) {
+                                    let alpha = p.map(d, 0, 100, 150, 0);
+                                    p.stroke(100, 100, 255, alpha);
+                                    p.line(particles[i].pos.x, particles[i].pos.y, 
+                                           particles[j].pos.x, particles[j].pos.y);
+                                }
+                            }
+                        }
+                        
+                        // Update and display particles
+                        particles.forEach(particle => {
+                            particle.update();
+                            particle.display();
+                        });
+                    };
+                    
+                    p.windowResized = function() {
+                        const container = document.getElementById('particle-system');
+                        p.resizeCanvas(container.clientWidth, container.clientHeight);
+                    };
+                    
+                    // Quantum Particle class
+                    class QuantumParticle {
+                        constructor() {
+                            this.pos = p.createVector(p.random(p.width), p.random(p.height));
+                            this.vel = p5.Vector.random2D().mult(p.random(0.5, 2));
+                            this.acc = p.createVector(0, 0);
+                            this.size = p.random(5, 15);
+                            this.color = p.color(
+                                p.random(100, 200), 
+                                p.random(100, 200), 
+                                p.random(200, 255), 
+                                p.random(150, 200)
+                            );
+                            this.phase = p.random(p.TWO_PI);
+                            this.phaseSpeed = p.random(0.01, 0.05);
+                            this.history = [];
+                        }
+                        
+                        update() {
+                            // Update position
+                            this.vel.add(this.acc);
+                            this.pos.add(this.vel);
+                            this.acc.mult(0);
+                            
+                            // Update phase
+                            this.phase += this.phaseSpeed;
+                            if (this.phase > p.TWO_PI) this.phase -= p.TWO_PI;
+                            
+                            // Store position history
+                            this.history.push(p.createVector(this.pos.x, this.pos.y));
+                            if (this.history.length > 20) this.history.shift();
+                            
+                            // Boundary checking
+                            if (this.pos.x < 0) {
+                                this.pos.x = p.width;
+                                this.history = [];
+                            }
+                            if (this.pos.x > p.width) {
+                                this.pos.x = 0;
+                                this.history = [];
+                            }
+                            if (this.pos.y < 0) {
+                                this.pos.y = p.height;
+                                this.history = [];
+                            }
+                            if (this.pos.y > p.height) {
+                                this.pos.y = 0;
+                                this.history = [];
+                            }
+                        }
+                        
+                        display() {
+                            // Draw history trail
+                            p.noFill();
+                            p.beginShape();
+                            for (let i = 0; i < this.history.length; i++) {
+                                let alpha = p.map(i, 0, this.history.length, 0, 150);
+                                p.stroke(p.red(this.color), p.green(this.color), p.blue(this.color), alpha);
+                                p.vertex(this.history[i].x, this.history[i].y);
+                            }
+                            p.endShape();
+                            
+                            // Draw particle
+                            p.noStroke();
+                            let pulseSize = this.size * (1 + 0.2 * p.sin(this.phase));
+                            p.fill(this.color);
+                            p.ellipse(this.pos.x, this.pos.y, pulseSize, pulseSize);
+                            
+                            // Draw inner glow
+                            let innerSize = pulseSize * 0.6;
+                            let innerColor = p.color(
+                                p.min(p.red(this.color) + 50, 255),
+                                p.min(p.green(this.color) + 50, 255),
+                                p.min(p.blue(this.color) + 50, 255),
+                                200
+                            );
+                            p.fill(innerColor);
+                            p.ellipse(this.pos.x, this.pos.y, innerSize, innerSize);
+                        }
+                    }
+                    
+                    // External controls
+                    p.addParticles = function(count) {
+                        for (let i = 0; i < count; i++) {
+                            particles.push(new QuantumParticle());
+                        }
+                        numParticles = particles.length;
+                    };
+                    
+                    p.removeParticles = function(count) {
+                        particles.splice(0, Math.min(count, particles.length));
+                        numParticles = particles.length;
+                    };
+                    
+                    p.getParticleCount = function() {
+                        return numParticles;
+                    };
+                };
+                
+                p5Instance = new p5(sketch, document.getElementById('particle-system'));
+            }
+            
+            // Particle system controls
+            document.getElementById('moreParticlesBtn').addEventListener('click', function() {
+                if (p5Instance) {
+                    p5Instance.addParticles(10);
+                }
+            });
+            
+            document.getElementById('fewerParticlesBtn').addEventListener('click', function() {
+                if (p5Instance) {
+                    p5Instance.removeParticles(10);
+                }
+            });
+            
+            // Initialize the entanglement visualization
+            let entanglementInstance = null;
+            
+            function initEntanglementVisualization() {
+                const sketch = function(p) {
+                    let qubitA, qubitB;
+                    let entangled = false;
+                    
+                    p.setup = function() {
+                        const container = document.getElementById('entanglement-visualization');
+                        p.createCanvas(container.clientWidth, container.clientHeight);
+                        p.textAlign(p.CENTER, p.CENTER);
+                        
+                        qubitA = new Qubit(p.width * 0.3, p.height * 0.5, "Qubit A");
+                        qubitB = new Qubit(p.width * 0.7, p.height * 0.5, "Qubit B");
+                    };
+                    
+                    p.draw = function() {
+                        p.background(20, 20, 40);
+                        
+                        // Draw connection if entangled
+                        if (entangled) {
+                            p.push();
+                            p.stroke(255, 100, 255, 150);
+                            p.strokeWeight(3);
+                            p.line(qubitA.x, qubitA.y, qubitB.x, qubitB.y);
+                            
+                            // Animated particles along the entanglement line
+                            let t = p.frameCount * 0.02;
+                            for (let i = 0; i < 5; i++) {
+                                let pos = p.map((t + i * 0.2) % 1, 0, 1, 0, 1);
+                                let x = p.lerp(qubitA.x, qubitB.x, pos);
+                                let y = p.lerp(qubitA.y, qubitB.y, pos);
+                                p.fill(255, 100, 255, 200);
+                                p.noStroke();
+                                p.ellipse(x, y, 8, 8);
+                            }
+                            p.pop();
+                        }
+                        
+                        // Draw qubits
+                        qubitA.display();
+                        qubitB.display();
+                    };
+                    
+                    p.windowResized = function() {
+                        const container = document.getElementById('entanglement-visualization');
+                        p.resizeCanvas(container.clientWidth, container.clientHeight);
+                        
+                        // Reposition qubits
+                        qubitA.x = p.width * 0.3;
+                        qubitA.y = p.height * 0.5;
+                        qubitB.x = p.width * 0.7;
+                        qubitB.y = p.height * 0.5;
+                    };
+                    
+                    // Qubit class for entanglement demo
+                    class Qubit {
+                        constructor(x, y, label) {
+                            this.x = x;
+                            this.y = y;
+                            this.label = label;
+                            this.size = 60;
+                            this.state = 0; // 0 = |0⟩, 1 = |1⟩, 2 = |+⟩, 3 = |-⟩
+                            this.phaseAngle = 0;
+                            this.color = p.color(139, 92, 246);
+                        }
+                        
+                        display() {
+                            p.push();
+                            p.translate(this.x, this.y);
+                            
+                            // Draw outer circle
+                            p.noFill();
+                            p.strokeWeight(2);
+                            p.stroke(100, 100, 255, 150);
+                            p.ellipse(0, 0, this.size, this.size);
+                            
+                            // Draw state representation
+                            p.noStroke();
+                            
+                            switch(this.state) {
+                                case 0: // |0⟩
+                                    p.fill(50, 50, 200);
+                                    p.ellipse(0, 0, this.size * 0.7, this.size * 0.7);
+                                    p.fill(255);
+                                    p.textSize(16);
+                                    p.text("|0⟩", 0, 0);
+                                    break;
+                                    
+                                case 1: // |1⟩
+                                    p.fill(200, 50, 50);
+                                    p.ellipse(0, 0, this.size * 0.7, this.size * 0.7);
+                                    p.fill(255);
+                                    p.textSize(16);
+                                    p.text("|1⟩", 0, 0);
+                                    break;
+                                    
+                                case 2: // |+⟩
+                                    p.fill(50, 200, 50);
+                                    p.ellipse(0, 0, this.size * 0.7, this.size * 0.7);
+                                    p.fill(255);
+                                    p.textSize(16);
+                                    p.text("|+⟩", 0, 0);
+                                    break;
+                                    
+                                case 3: // |-⟩
+                                    p.fill(200, 200, 50);
+                                    p.ellipse(0, 0, this.size * 0.7, this.size * 0.7);
+                                    p.fill(255);
+                                    p.textSize(16);
+                                    p.text("|-⟩", 0, 0);
+                                    break;
+                            }
+                            
+                            // Draw label
+                            p.fill(200);
+                            p.textSize(14);
+                            p.text(this.label, 0, this.size/2 + 15);
+                            
+                            p.pop();
+                        }
+                        
+                        applyX() {
+                            if (this.state === 0) this.state = 1;
+                            else if (this.state === 1) this.state = 0;
+                            else if (this.state === 2) this.state = 3;
+                            else if (this.state === 3) this.state = 2;
+                        }
+                        
+                        applyZ() {
+                            if (this.state === 2) this.state = 3;
+                            else if (this.state === 3) this.state = 2;
+                            // Z doesn't change |0⟩ or |1⟩ visibly (just adds phase)
+                        }
+                        
+                        applyH() {
+                            if (this.state === 0) this.state = 2;
+                            else if (this.state === 1) this.state = 3;
+                            else if (this.state === 2) this.state = 0;
+                            else if (this.state === 3) this.state = 1;
+                        }
+                    }
+                    
+                    // External control functions
+                    p.setEntangled = function(value) {
+                        entangled = value;
+                        // When entangled, reset both qubits to |0⟩
+                        if (entangled) {
+                            qubitA.state = 0;
+                            qubitB.state = 0;
+                        }
+                    };
+                    
+                    p.applyGateA = function(gate) {
+                        if (gate === 'X') qubitA.applyX();
+                        else if (gate === 'Z') qubitA.applyZ();
+                        else if (gate === 'H') qubitA.applyH();
+                        
+                        // If entangled, apply the same effect to qubit B
+                        if (entangled) {
+                            if (gate === 'X') qubitB.applyX();
+                            else if (gate === 'Z') qubitB.applyZ();
+                            else if (gate === 'H') qubitB.applyH();
+                        }
+                    };
+                    
+                    p.applyGateB = function(gate) {
+                        if (gate === 'X') qubitB.applyX();
+                        else if (gate === 'Z') qubitB.applyZ();
+                        else if (gate === 'H') qubitB.applyH();
+                        
+                        // If entangled, apply the same effect to qubit A
+                        if (entangled) {
+                            if (gate === 'X') qubitA.applyX();
+                            else if (gate === 'Z') qubitA.applyZ();
+                            else if (gate === 'H') qubitA.applyH();
+                        }
+                    };
+                };
+                
+                entanglementInstance = new p5(sketch, document.getElementById('entanglement-visualization'));
+            }
+            
+            // Entanglement controls
+            document.getElementById('entangleBtn').addEventListener('click', function() {
+                if (entanglementInstance) {
+                    entanglementInstance.setEntangled(true);
+                    this.textContent = 'Entanglement Active!';
+                    this.classList.add('bg-pink-600');
+                    
+                    // Reset after 3 seconds
+                    setTimeout(() => {
+                        this.textContent = 'Entangle Qubits';
+                        this.classList.remove('bg-pink-600');
+                    }, 3000);
+                }
+            });
+            
+            // Qubit A controls
+            document.getElementById('qubitA-X').addEventListener('click', function() {
+                if (entanglementInstance) entanglementInstance.applyGateA('X');
+            });
+            
+            document.getElementById('qubitA-Z').addEventListener('click', function() {
+                if (entanglementInstance) entanglementInstance.applyGateA('Z');
+            });
+            
+            document.getElementById('qubitA-H').addEventListener('click', function() {
+                if (entanglementInstance) entanglementInstance.applyGateA('H');
+            });
+            
+            // Qubit B controls
+            document.getElementById('qubitB-X').addEventListener('click', function() {
+                if (entanglementInstance) entanglementInstance.applyGateB('X');
+            });
+            
+            document.getElementById('qubitB-Z').addEventListener('click', function() {
+                if (entanglementInstance) entanglementInstance.applyGateB('Z');
+            });
+            
+            document.getElementById('qubitB-H').addEventListener('click', function() {
+                if (entanglementInstance) entanglementInstance.applyGateB('H');
+            });
+            
+            // Tutorial functionality
+            const tutorialSteps = [
+                document.getElementById('tutorialStep1'),
+                document.getElementById('tutorialStep2'),
+                document.getElementById('tutorialStep3'),
+                document.getElementById('tutorialStep4'),
+                document.getElementById('tutorialStep5')
+            ];
+            
+            let currentStep = 0;
+            
+            document.getElementById('startTutorial').addEventListener('click', function() {
+                currentStep = 0;
+                showTutorialStep(currentStep);
+            });
+            
+            document.getElementById('nextTutorial1').addEventListener('click', function() {
+                hideTutorialStep(currentStep);
+                currentStep = 1;
+                showTutorialStep(currentStep);
+            });
+            
+            document.getElementById('nextTutorial2').addEventListener('click', function() {
+                hideTutorialStep(currentStep);
+                currentStep = 2;
+                showTutorialStep(currentStep);
+            });
+            
+            document.getElementById('nextTutorial3').addEventListener('click', function() {
+                hideTutorialStep(currentStep);
+                currentStep = 3;
+                showTutorialStep(currentStep);
+            });
+            
+            document.getElementById('nextTutorial4').addEventListener('click', function() {
+                hideTutorialStep(currentStep);
+                currentStep = 4;
+                showTutorialStep(currentStep);
+            });
+            
+            document.getElementById('finishTutorial').addEventListener('click', function() {
+                hideTutorialStep(currentStep);
+            });
+            
+            function showTutorialStep(step) {
+                const element = tutorialSteps[step];
+                if (!element) return;
+                
+                element.style.display = 'block';
+                
+                // Position the step based on its target
+                switch(step) {
+                    case 0:
+                        positionElement(element, document.querySelector('header'), 'bottom');
+                        break;
+                    case 1:
+                        positionElement(element, document.getElementById('quantum-spheres-container'), 'right');
+                        break;
+                    case 2:
+                        positionElement(element, document.querySelector('.circuit-builder'), 'left');
+                        break;
+                    case 3:
+                        positionElement(element, document.querySelector('.experiment-card'), 'left');
+                        break;
+                    case 4:
+                        positionElement(element, document.querySelector('.concept-card'), 'top');
+                        break;
+                }
+            }
+            
+            function hideTutorialStep(step) {
+                const element = tutorialSteps[step];
+                if (!element) return;
+                
+                element.style.display = 'none';
+            }
+            
+            function positionElement(element, target, position = 'bottom') {
+                if (!target || !element) return;
+                
+                const targetRect = target.getBoundingClientRect();
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+                
+                switch(position) {
+                    case 'top':
+                        element.style.top = (targetRect.top + scrollTop - element.offsetHeight - 10) + 'px';
+                        element.style.left = (targetRect.left + scrollLeft + targetRect.width/2 - element.offsetWidth/2) + 'px';
+                        break;
+                    case 'bottom':
+                        element.style.top = (targetRect.bottom + scrollTop + 10) + 'px';
+                        element.style.left = (targetRect.left + scrollLeft + targetRect.width/2 - element.offsetWidth/2) + 'px';
+                        break;
+                    case 'left':
+                        element.style.top = (targetRect.top + scrollTop + targetRect.height/2 - element.offsetHeight/2) + 'px';
+                        element.style.left = (targetRect.left + scrollLeft - element.offsetWidth - 10) + 'px';
+                        break;
+                    case 'right':
+                        element.style.top = (targetRect.top + scrollTop + targetRect.height/2 - element.offsetHeight/2) + 'px';
+                        element.style.left = (targetRect.right + scrollLeft + 10) + 'px';
+                        break;
+                }
+                
+                // Make sure the tutorial step is visible by scrolling if needed
+                const elementRect = element.getBoundingClientRect();
+                if (elementRect.top < 0 || elementRect.bottom > window.innerHeight) {
+                    element.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
+            }
+            
+            // Initialize all visualizations
+            initThreeJS();
+            initP5();
+            initEntanglementVisualization();
+            
+            // Add welcome notification
+            setTimeout(() => {
+                const notification = document.createElement('div');
+                notification.className = 'fixed bottom-5 right-5 bg-gradient-to-r from-purple-600 to-cyan-400 text-white p-4 rounded-lg shadow-lg z-50 max-w-md';
+                notification.innerHTML = `
+                    <h3 class="font-bold mb-2">🎉 Welcome to World Quantum Day!</h3>
+                    <p class="mb-2">Explore quantum computing through this interactive simulation.</p>
+                    <p class="text-sm">Click "Start Tutorial" to begin your quantum journey.</p>
+                    <button class="absolute top-2 right-2 text-white" id="closeNotification">&times;</button>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                document.getElementById('closeNotification').addEventListener('click', function() {
+                    notification.remove();
+                });
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 8000);
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
