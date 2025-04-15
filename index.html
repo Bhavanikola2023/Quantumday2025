@@ -555,7 +555,7 @@
     </main>
     
     <!-- Footer -->
-    <footer class="mt-8 py-6 bg-gray-900 text-center">
+     <footer class="mt-8 py-6 bg-gray-900 text-center">
         <p class="text-gray-400">Created for World Quantum Day-Bhavani Kola | Experience the Quantum Revolution</p>
         <div class="mt-2 flex justify-center space-x-4">
             <a href="https://www.eclatechusa.com/" class="text-cyan-400 hover:text-cyan-300">
@@ -885,7 +885,7 @@
                 experimentModal.style.display = 'none';
             });
             
-            // Tab switching functionality
+            // Tab switching functionality with forced resize to fix canvases
             const tabs = {
                 'spheresTab': 'spheresContent',
                 'particlesTab': 'particlesContent',
@@ -906,6 +906,9 @@
                     // Activate clicked tab
                     this.classList.add('active');
                     document.getElementById(tabs[tabId]).classList.add('active');
+                    
+                    // Trigger window resize event to reflow canvases for p5.js and entanglement visualization
+                    window.dispatchEvent(new Event('resize'));
                 });
             });
             
@@ -1764,7 +1767,6 @@
                         applyZ() {
                             if (this.state === 2) this.state = 3;
                             else if (this.state === 3) this.state = 2;
-                            // Z doesn't change |0⟩ or |1⟩ visibly (just adds phase)
                         }
                         
                         applyH() {
@@ -1778,7 +1780,6 @@
                     // External control functions
                     p.setEntangled = function(value) {
                         entangled = value;
-                        // When entangled, reset both qubits to |0⟩
                         if (entangled) {
                             qubitA.state = 0;
                             qubitB.state = 0;
@@ -1790,7 +1791,6 @@
                         else if (gate === 'Z') qubitA.applyZ();
                         else if (gate === 'H') qubitA.applyH();
                         
-                        // If entangled, apply the same effect to qubit B
                         if (entangled) {
                             if (gate === 'X') qubitB.applyX();
                             else if (gate === 'Z') qubitB.applyZ();
@@ -1803,7 +1803,6 @@
                         else if (gate === 'Z') qubitB.applyZ();
                         else if (gate === 'H') qubitB.applyH();
                         
-                        // If entangled, apply the same effect to qubit A
                         if (entangled) {
                             if (gate === 'X') qubitA.applyX();
                             else if (gate === 'Z') qubitA.applyZ();
@@ -1822,7 +1821,6 @@
                     this.textContent = 'Entanglement Active!';
                     this.classList.add('bg-pink-600');
                     
-                    // Reset after 3 seconds
                     setTimeout(() => {
                         this.textContent = 'Entangle Qubits';
                         this.classList.remove('bg-pink-600');
@@ -1906,7 +1904,6 @@
                 
                 element.style.display = 'block';
                 
-                // Position the step based on its target
                 switch(step) {
                     case 0:
                         positionElement(element, document.querySelector('header'), 'bottom');
@@ -1929,13 +1926,11 @@
             function hideTutorialStep(step) {
                 const element = tutorialSteps[step];
                 if (!element) return;
-                
                 element.style.display = 'none';
             }
             
             function positionElement(element, target, position = 'bottom') {
                 if (!target || !element) return;
-                
                 const targetRect = target.getBoundingClientRect();
                 const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                 const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
@@ -1959,7 +1954,6 @@
                         break;
                 }
                 
-                // Make sure the tutorial step is visible by scrolling if needed
                 const elementRect = element.getBoundingClientRect();
                 if (elementRect.top < 0 || elementRect.bottom > window.innerHeight) {
                     element.scrollIntoView({
