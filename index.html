@@ -15,7 +15,8 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/p5@1.4.1/lib/p5.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqubits@1.1.1/lib/jsqubits.js"></script>
+    <!-- Fix: Load jsqubits properly with direct CDN link -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqubits@1.1.0/jsqubits.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.10.4/dist/gsap.min.js"></script>
     <style>
         :root {
@@ -413,10 +414,11 @@
                     </div>
                 </div>
                 
+                <!-- Updated entanglement content container to include max-width and centered margins -->
                 <div id="entanglementContent" class="tab-content">
                     <div id="entanglement-visualization" class="h-96 w-full rounded-lg bg-black/30 flex items-center justify-center">
                         <!-- Entanglement visualization will render here -->
-                        <div class="text-center">
+                        <div class="text-center max-w-md mx-auto">
                             <p class="mb-4">Entanglement simulation - quantum states that affect each other regardless of distance.</p>
                             <button id="entangleBtn" class="quantum-btn mb-4">
                                 <i class="fas fa-link mr-1"></i> Entangle Qubits
@@ -555,16 +557,16 @@
     </main>
     
     <!-- Footer -->
-     <footer class="mt-8 py-6 bg-gray-900 text-center">
-        <p class="text-gray-400">Created for World Quantum Day-Bhavani Kola | Experience the Quantum Revolution</p>
+    <footer class="mt-8 py-6 bg-gray-900 text-center">
+        <p class="text-gray-400">Created for World Quantum Day | Experience the Quantum Revolution</p>
         <div class="mt-2 flex justify-center space-x-4">
-            <a href="https://www.eclatechusa.com/" class="text-cyan-400 hover:text-cyan-300">
-                <i class="fas fa-globe"></i>
+            <a href="#" class="text-cyan-400 hover:text-cyan-300">
+                <i class="fab fa-twitter"></i>
             </a>
-            <a href="https://www.linkedin.com/in/bhavanikola/" class="text-blue-400 hover:text-blue-300">
+            <a href="#" class="text-blue-400 hover:text-blue-300">
                 <i class="fab fa-linkedin"></i>
             </a>
-            <a href="https://www.youtube.com/@BhavaniKola" class="text-red-400 hover:text-red-300">
+            <a href="#" class="text-red-400 hover:text-red-300">
                 <i class="fab fa-youtube"></i>
             </a>
         </div>
@@ -642,7 +644,186 @@
         <p class="mb-4">Click on these cards to learn more about the fundamental concepts of quantum computing.</p>
         <button id="finishTutorial" class="quantum-btn w-full">Finish Tutorial</button>
     </div>
-
+    <!-- Add the jsqubits implementation to ensure it's available -->
+    <script>
+        // Fallback implementation of jsqubits in case CDN fails
+        if (typeof jsqubits === 'undefined') {
+            console.log("Loading local jsqubits implementation");
+            
+            // Basic implementation of jsqubits for the simulation
+            window.jsqubits = (function() {
+                // Constructor for quantum state
+                function QState(numBits, amplitudes) {
+                    this.numBits = numBits || 1;
+                    this.amplitudes = amplitudes || {'0': {real: 1, imag: 0}};
+                    
+                    this.toString = function() {
+                        let result = '';
+                        for (let key in this.amplitudes) {
+                            if (this.amplitudes.hasOwnProperty(key)) {
+                                let amplitude = this.amplitudes[key];
+                                let mag = Math.sqrt(amplitude.real * amplitude.real + amplitude.imag * amplitude.imag);
+                                if (mag > 0.001) {
+                                    if (result.length > 0) result += ' + ';
+                                    result += `(${amplitude.real.toFixed(2)}${amplitude.imag >= 0 ? '+' : ''}${amplitude.imag.toFixed(2)}i)|${key.padStart(this.numBits, '0')}⟩`;
+                                }
+                            }
+                        }
+                        return result;
+                    };
+                    
+                    this.amplitude = function(bitString) {
+                        // Remove the |⟩ if present
+                        bitString = bitString.replace(/\||\⟩/g, '');
+                        if (this.amplitudes[bitString]) {
+                            return {
+                                magnitude: function() {
+                                    const amp = this.amplitudes[bitString];
+                                    return Math.sqrt(amp.real * amp.real + amp.imag * amp.imag);
+                                }.bind(this)
+                            };
+                        }
+                        return { magnitude: function() { return 0; } };
+                    };
+                    
+                    // Apply Hadamard gate to specified bit
+                    this.hadamard = function(bit) {
+                        bit = this.numBits - bit - 1; // Convert from big-endian to little-endian indexing
+                        let newAmplitudes = {};
+                        
+                        for (let basisState in this.amplitudes) {
+                            if (this.amplitudes.hasOwnProperty(basisState)) {
+                                let stateAsInt = parseInt(basisState, 2) || 0;
+                                let bitValue = (stateAsInt >> bit) & 1;
+                                let newBasisState0 = stateAsInt & ~(1 << bit);
+                                let newBasisState1 = stateAsInt | (1 << bit);
+                                
+                                let amplitude = this.amplitudes[basisState];
+                                let factor = bitValue ? -1 : 1;
+                                
+                                // Update amplitude for |0⟩ basis state
+                                let newState0 = newBasisState0.toString(2).padStart(this.numBits, '0');
+                                if (!newAmplitudes[newState0]) newAmplitudes[newState0] = {real: 0, imag: 0};
+                                newAmplitudes[newState0].real += amplitude.real / Math.SQRT2;
+                                newAmplitudes[newState0].imag += amplitude.imag / Math.SQRT2;
+                                
+                                // Update amplitude for |1⟩ basis state
+                                let newState1 = newBasisState1.toString(2).padStart(this.numBits, '0');
+                                if (!newAmplitudes[newState1]) newAmplitudes[newState1] = {real: 0, imag: 0};
+                                newAmplitudes[newState1].real += factor * amplitude.real / Math.SQRT2;
+                                newAmplitudes[newState1].imag += factor * amplitude.imag / Math.SQRT2;
+                            }
+                        }
+                        
+                        return new QState(this.numBits, newAmplitudes);
+                    };
+                    
+                    // Apply Pauli-X gate to specified bit
+                    this.pauliX = function(bit) {
+                        bit = this.numBits - bit - 1; // Convert from big-endian to little-endian indexing
+                        let newAmplitudes = {};
+                        
+                        for (let basisState in this.amplitudes) {
+                            if (this.amplitudes.hasOwnProperty(basisState)) {
+                                let stateAsInt = parseInt(basisState, 2) || 0;
+                                let flippedState = stateAsInt ^ (1 << bit);
+                                let newState = flippedState.toString(2).padStart(this.numBits, '0');
+                                
+                                newAmplitudes[newState] = this.amplitudes[basisState];
+                            }
+                        }
+                        
+                        return new QState(this.numBits, newAmplitudes);
+                    };
+                    
+                    // Apply Pauli-Y gate to specified bit
+                    this.pauliY = function(bit) {
+                        bit = this.numBits - bit - 1; // Convert from big-endian to little-endian indexing
+                        let newAmplitudes = {};
+                        
+                        for (let basisState in this.amplitudes) {
+                            if (this.amplitudes.hasOwnProperty(basisState)) {
+                                let stateAsInt = parseInt(basisState, 2) || 0;
+                                let bitValue = (stateAsInt >> bit) & 1;
+                                let flippedState = stateAsInt ^ (1 << bit);
+                                let newState = flippedState.toString(2).padStart(this.numBits, '0');
+                                
+                                let amplitude = this.amplitudes[basisState];
+                                let factor = bitValue ? 1 : -1;
+                                
+                                newAmplitudes[newState] = {
+                                    real: -factor * amplitude.imag,
+                                    imag: factor * amplitude.real
+                                };
+                            }
+                        }
+                        
+                        return new QState(this.numBits, newAmplitudes);
+                    };
+                    
+                    // Apply Pauli-Z gate to specified bit
+                    this.pauliZ = function(bit) {
+                        bit = this.numBits - bit - 1; // Convert from big-endian to little-endian indexing
+                        let newAmplitudes = {};
+                        
+                        for (let basisState in this.amplitudes) {
+                            if (this.amplitudes.hasOwnProperty(basisState)) {
+                                let stateAsInt = parseInt(basisState, 2) || 0;
+                                let bitValue = (stateAsInt >> bit) & 1;
+                                
+                                newAmplitudes[basisState] = this.amplitudes[basisState];
+                                if (bitValue === 1) {
+                                    newAmplitudes[basisState].real = -newAmplitudes[basisState].real;
+                                    newAmplitudes[basisState].imag = -newAmplitudes[basisState].imag;
+                                }
+                            }
+                        }
+                        
+                        return new QState(this.numBits, newAmplitudes);
+                    };
+                    
+                    // Apply CNOT gate
+                    this.cnot = function(controlBit, targetBit) {
+                        controlBit = this.numBits - controlBit - 1; // Convert to little-endian
+                        targetBit = this.numBits - targetBit - 1;
+                        
+                        let newAmplitudes = {};
+                        
+                        for (let basisState in this.amplitudes) {
+                            if (this.amplitudes.hasOwnProperty(basisState)) {
+                                let stateAsInt = parseInt(basisState, 2) || 0;
+                                let controlValue = (stateAsInt >> controlBit) & 1;
+                                
+                                if (controlValue === 1) {
+                                    // Flip the target bit
+                                    stateAsInt ^= (1 << targetBit);
+                                }
+                                
+                                let newState = stateAsInt.toString(2).padStart(this.numBits, '0');
+                                newAmplitudes[newState] = this.amplitudes[basisState];
+                            }
+                        }
+                        
+                        return new QState(this.numBits, newAmplitudes);
+                    };
+                }
+                
+                // Main function to create a quantum state
+                function createQState(bitString) {
+                    // Remove |⟩ if present
+                    bitString = bitString.replace(/\||\⟩/g, '');
+                    
+                    const numBits = bitString.length;
+                    let amplitudes = {};
+                    amplitudes[bitString] = {real: 1, imag: 0};
+                    
+                    return new QState(numBits, amplitudes);
+                }
+                
+                return createQState;
+            })();
+        }
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Update progress bar as user scrolls
@@ -969,11 +1150,17 @@
                 });
             });
             
-            // Run and Clear Circuit buttons
+           // Run and Clear Circuit buttons
             document.getElementById('runCircuit').addEventListener('click', function() {
                 // Simply simulation using jsqubits
                 try {
-                    let qubits = jsqubits('|000⟩');
+                    // Make sure jsqubits is defined
+                    if (typeof jsqubits === 'undefined') {
+                        throw new Error("The jsqubits library is not properly loaded. Please refresh the page or check the console for more information.");
+                    }
+                    
+                   let qubits = jsqubits('|000>');
+
                     
                     // Apply gates for qubit 0
                     circuit.qubit0.forEach(gate => {
@@ -1013,7 +1200,8 @@
                     
                     for (let i = 0; i < 8; i++) {
                         const bitString = i.toString(2).padStart(3, '0');
-                        const amplitude = qubits.amplitude(`|${bitString}⟩`);
+       const amplitude = qubits.amplitude(`|${bitString}>`);
+
                         const probability = amplitude.magnitude() * amplitude.magnitude();
                         
                         if (probability > 0.001) {
@@ -1054,6 +1242,7 @@
                         <p class="text-red-500">Error: ${error.message}</p>
                         <p class="text-sm text-gray-400">Check your circuit configuration.</p>
                     `;
+                    console.error("Circuit execution error:", error);
                 }
             });
             
@@ -1219,6 +1408,9 @@
                     experimentModal.style.display = 'none';
                 }
             });
+            
+
+
             
             // Initialize Three.js for Quantum Spheres Visualization
             let scene, camera, renderer, controls;
@@ -1410,8 +1602,6 @@
                 }
                 
                 // Update state vectors
-                // This is a simplified approximation - proper visualization would analyze
-                // the full quantum state and extract the single-qubit Bloch vectors
                 try {
                     // Update qubit 0
                     let theta0 = Math.PI/2, phi0 = 0;
@@ -1484,14 +1674,12 @@
                             particles.push(new QuantumParticle());
                         }
                         
-                        // Adjust for retina displays
                         p.pixelDensity(1);
                     };
                     
                     p.draw = function() {
                         p.background(20, 20, 40, 10);
                         
-                        // Draw connections between particles (entanglement)
                         p.stroke(100, 100, 255, 50);
                         p.strokeWeight(1);
                         for (let i = 0; i < particles.length; i++) {
@@ -1507,7 +1695,6 @@
                             }
                         }
                         
-                        // Update and display particles
                         particles.forEach(particle => {
                             particle.update();
                             particle.display();
@@ -1519,7 +1706,6 @@
                         p.resizeCanvas(container.clientWidth, container.clientHeight);
                     };
                     
-                    // Quantum Particle class
                     class QuantumParticle {
                         constructor() {
                             this.pos = p.createVector(p.random(p.width), p.random(p.height));
@@ -1538,20 +1724,16 @@
                         }
                         
                         update() {
-                            // Update position
                             this.vel.add(this.acc);
                             this.pos.add(this.vel);
                             this.acc.mult(0);
                             
-                            // Update phase
                             this.phase += this.phaseSpeed;
                             if (this.phase > p.TWO_PI) this.phase -= p.TWO_PI;
                             
-                            // Store position history
                             this.history.push(p.createVector(this.pos.x, this.pos.y));
                             if (this.history.length > 20) this.history.shift();
                             
-                            // Boundary checking
                             if (this.pos.x < 0) {
                                 this.pos.x = p.width;
                                 this.history = [];
@@ -1571,7 +1753,6 @@
                         }
                         
                         display() {
-                            // Draw history trail
                             p.noFill();
                             p.beginShape();
                             for (let i = 0; i < this.history.length; i++) {
@@ -1581,13 +1762,11 @@
                             }
                             p.endShape();
                             
-                            // Draw particle
                             p.noStroke();
                             let pulseSize = this.size * (1 + 0.2 * p.sin(this.phase));
                             p.fill(this.color);
                             p.ellipse(this.pos.x, this.pos.y, pulseSize, pulseSize);
                             
-                            // Draw inner glow
                             let innerSize = pulseSize * 0.6;
                             let innerColor = p.color(
                                 p.min(p.red(this.color) + 50, 255),
@@ -1600,7 +1779,6 @@
                         }
                     }
                     
-                    // External controls
                     p.addParticles = function(count) {
                         for (let i = 0; i < count; i++) {
                             particles.push(new QuantumParticle());
@@ -1621,7 +1799,6 @@
                 p5Instance = new p5(sketch, document.getElementById('particle-system'));
             }
             
-            // Particle system controls
             document.getElementById('moreParticlesBtn').addEventListener('click', function() {
                 if (p5Instance) {
                     p5Instance.addParticles(10);
@@ -1654,14 +1831,12 @@
                     p.draw = function() {
                         p.background(20, 20, 40);
                         
-                        // Draw connection if entangled
                         if (entangled) {
                             p.push();
                             p.stroke(255, 100, 255, 150);
                             p.strokeWeight(3);
                             p.line(qubitA.x, qubitA.y, qubitB.x, qubitB.y);
                             
-                            // Animated particles along the entanglement line
                             let t = p.frameCount * 0.02;
                             for (let i = 0; i < 5; i++) {
                                 let pos = p.map((t + i * 0.2) % 1, 0, 1, 0, 1);
@@ -1674,7 +1849,6 @@
                             p.pop();
                         }
                         
-                        // Draw qubits
                         qubitA.display();
                         qubitB.display();
                     };
@@ -1683,21 +1857,19 @@
                         const container = document.getElementById('entanglement-visualization');
                         p.resizeCanvas(container.clientWidth, container.clientHeight);
                         
-                        // Reposition qubits
                         qubitA.x = p.width * 0.3;
                         qubitA.y = p.height * 0.5;
                         qubitB.x = p.width * 0.7;
                         qubitB.y = p.height * 0.5;
                     };
                     
-                    // Qubit class for entanglement demo
                     class Qubit {
                         constructor(x, y, label) {
                             this.x = x;
                             this.y = y;
                             this.label = label;
                             this.size = 60;
-                            this.state = 0; // 0 = |0⟩, 1 = |1⟩, 2 = |+⟩, 3 = |-⟩
+                            this.state = 0;
                             this.phaseAngle = 0;
                             this.color = p.color(139, 92, 246);
                         }
@@ -1706,41 +1878,36 @@
                             p.push();
                             p.translate(this.x, this.y);
                             
-                            // Draw outer circle
                             p.noFill();
                             p.strokeWeight(2);
                             p.stroke(100, 100, 255, 150);
                             p.ellipse(0, 0, this.size, this.size);
                             
-                            // Draw state representation
                             p.noStroke();
                             
                             switch(this.state) {
-                                case 0: // |0⟩
+                                case 0:
                                     p.fill(50, 50, 200);
                                     p.ellipse(0, 0, this.size * 0.7, this.size * 0.7);
                                     p.fill(255);
                                     p.textSize(16);
                                     p.text("|0⟩", 0, 0);
                                     break;
-                                    
-                                case 1: // |1⟩
+                                case 1:
                                     p.fill(200, 50, 50);
                                     p.ellipse(0, 0, this.size * 0.7, this.size * 0.7);
                                     p.fill(255);
                                     p.textSize(16);
                                     p.text("|1⟩", 0, 0);
                                     break;
-                                    
-                                case 2: // |+⟩
+                                case 2:
                                     p.fill(50, 200, 50);
                                     p.ellipse(0, 0, this.size * 0.7, this.size * 0.7);
                                     p.fill(255);
                                     p.textSize(16);
                                     p.text("|+⟩", 0, 0);
                                     break;
-                                    
-                                case 3: // |-⟩
+                                case 3:
                                     p.fill(200, 200, 50);
                                     p.ellipse(0, 0, this.size * 0.7, this.size * 0.7);
                                     p.fill(255);
@@ -1749,7 +1916,6 @@
                                     break;
                             }
                             
-                            // Draw label
                             p.fill(200);
                             p.textSize(14);
                             p.text(this.label, 0, this.size/2 + 15);
@@ -1777,7 +1943,6 @@
                         }
                     }
                     
-                    // External control functions
                     p.setEntangled = function(value) {
                         entangled = value;
                         if (entangled) {
@@ -1814,7 +1979,6 @@
                 entanglementInstance = new p5(sketch, document.getElementById('entanglement-visualization'));
             }
             
-            // Entanglement controls
             document.getElementById('entangleBtn').addEventListener('click', function() {
                 if (entanglementInstance) {
                     entanglementInstance.setEntangled(true);
@@ -1828,7 +1992,6 @@
                 }
             });
             
-            // Qubit A controls
             document.getElementById('qubitA-X').addEventListener('click', function() {
                 if (entanglementInstance) entanglementInstance.applyGateA('X');
             });
@@ -1841,7 +2004,6 @@
                 if (entanglementInstance) entanglementInstance.applyGateA('H');
             });
             
-            // Qubit B controls
             document.getElementById('qubitB-X').addEventListener('click', function() {
                 if (entanglementInstance) entanglementInstance.applyGateB('X');
             });
@@ -1854,7 +2016,6 @@
                 if (entanglementInstance) entanglementInstance.applyGateB('H');
             });
             
-            // Tutorial functionality
             const tutorialSteps = [
                 document.getElementById('tutorialStep1'),
                 document.getElementById('tutorialStep2'),
@@ -1901,9 +2062,7 @@
             function showTutorialStep(step) {
                 const element = tutorialSteps[step];
                 if (!element) return;
-                
                 element.style.display = 'block';
-                
                 switch(step) {
                     case 0:
                         positionElement(element, document.querySelector('header'), 'bottom');
@@ -1934,7 +2093,6 @@
                 const targetRect = target.getBoundingClientRect();
                 const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
                 const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-                
                 switch(position) {
                     case 'top':
                         element.style.top = (targetRect.top + scrollTop - element.offsetHeight - 10) + 'px';
@@ -1953,7 +2111,6 @@
                         element.style.left = (targetRect.right + scrollLeft + 10) + 'px';
                         break;
                 }
-                
                 const elementRect = element.getBoundingClientRect();
                 if (elementRect.top < 0 || elementRect.bottom > window.innerHeight) {
                     element.scrollIntoView({
@@ -1963,12 +2120,10 @@
                 }
             }
             
-            // Initialize all visualizations
             initThreeJS();
             initP5();
             initEntanglementVisualization();
             
-            // Add welcome notification
             setTimeout(() => {
                 const notification = document.createElement('div');
                 notification.className = 'fixed bottom-5 right-5 bg-gradient-to-r from-purple-600 to-cyan-400 text-white p-4 rounded-lg shadow-lg z-50 max-w-md';
@@ -1978,13 +2133,10 @@
                     <p class="text-sm">Click "Start Tutorial" to begin your quantum journey.</p>
                     <button class="absolute top-2 right-2 text-white" id="closeNotification">&times;</button>
                 `;
-                
                 document.body.appendChild(notification);
-                
                 document.getElementById('closeNotification').addEventListener('click', function() {
                     notification.remove();
                 });
-                
                 setTimeout(() => {
                     notification.remove();
                 }, 8000);
